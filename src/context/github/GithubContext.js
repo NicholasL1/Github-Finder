@@ -42,7 +42,12 @@ export const GithubProvider = ({ children }) => {
   const getUserRepos = async (login) => {
     setLoading()
 
-    const res = await fetch(`${GITHUB_URL}/users/${login}/repos`, {
+    const params = new URLSearchParams({
+      sort: 'created',
+      per_page: 10
+    })
+
+    const res = await fetch(`${GITHUB_URL}/users/${login}/repos?${params}`, {
       headers: {
         Authorization: `token ${TOKEN}`
       },
