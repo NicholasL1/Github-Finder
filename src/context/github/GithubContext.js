@@ -9,13 +9,40 @@ const TOKEN = process.env.REACT_APP_GITHUB_TOKEN
 export const GithubProvider = ({ children }) => {
   const initialState = {
     users: [],
-    loading: true
+    user: {},
+    repos: [],
+    loading: false,
   }
 
   const [state, dispatch] = useReducer(githubReducer, initialState)
 
-  const fetchUsers = async () => {
-    const res = await fetch(`${GITHUB_URL}/users`, {
+  // Get search results
+  const searchUsers = async (text) => {
+    setLoading()
+
+    const params = new URLSearchParams({
+      q: text
+    })
+
+    const res = await fetch(`${GITHUB_URL}/search/users?${params}`, {
+      headers: {
+        Authorization: `token ${TOKEN}`
+      },
+    })
+
+    const { items } = await res.json()
+
+    dispatch({
+      type: 'GET_USERS',
+      payload: items,
+    })
+  }
+
+  // Get user repos
+  const getUserRepos = async (login) => {
+    setLoading()
+
+    const res = await fetch(`${GITHUB_URL}/users/${login}/repos`, {
       headers: {
         Authorization: `token ${TOKEN}`
       },
@@ -24,15 +51,53 @@ export const GithubProvider = ({ children }) => {
     const data = await res.json()
 
     dispatch({
-      type: 'GET_USERS',
+      type: 'GET_REPOS',
       payload: data,
     })
   }
 
+  // Get single user
+  const getUser = async (login) => {
+    setLoading()
+
+    const res = await fetch(`${GITHUB_URL}/users/${login}`, {
+      headers: {
+        Authorization: `token ${TOKEN}`
+      },
+    })
+
+    if (res.status === 404) {
+      window.location = '/notfound'
+    } else {
+      const data = await res.json()
+
+      dispatch({
+        type: 'GET_USER',
+        payload: data,
+      })
+    }
+
+  }
+
+  // Clear search results
+  const clearResults = () => {
+    dispatch({
+      type: 'CLEAR_USERS',
+    })
+  }
+
+  // Set loading
+  const setLoading = () => dispatch({ type: 'SET_LOADING' })
+
   return <GithubContext.Provider value={{
     users: state.users,
     loading: state.loading,
-    fetchUsers,
+    user: state.user,
+    repos: state.repos,
+    searchUsers,
+    clearResults,
+    getUser,
+    getUserRepos,
   }}>
     {children}
   </GithubContext.Provider>
